@@ -1,0 +1,25 @@
+function declareFree(ID, slots, currentTime)
+    Int = load("Interviewers.mat", "Int").Int;
+    freeSlots = Int.Free(Int.ID==ID,:);
+    slots = slots(slots>currentTime);
+    % if freeSlots(slots) == 0
+    %     freeSlots(slots) = 1;
+    % end
+    for i = slots
+        if freeSlots(i) == 0
+            freeSlots(i) = 1;
+        end
+    end
+    Int.Free(Int.ID==ID,:) = freeSlots;
+    limit = min([currentTime+16, 32]);
+    for i = 1:height(Int)
+        
+        nz = find(Int.Free(i,currentTime+1:limit)==1);
+        Int.validSlots(i) = length(nz);%(nz<limit&nz>currentTime)
+        %disp(Int.validSlots(i));
+    end
+    Int.validSlots(1:16) = ceil(Int.validSlots(1:16)/4);
+    Int.validSlots(17:23) = ceil(Int.validSlots(17:23)/2);
+    save("Interviewers.mat", "Int");
+
+end

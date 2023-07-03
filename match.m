@@ -1,0 +1,166 @@
+function matchFile = match(iter, currentTime)
+    if iter == 1
+        firstRound();
+        delete test/Scheduling/data/output/panel/round1.csv;
+        delete test/Scheduling/data/output/panel/round2.csv;
+        delete test/Scheduling/data/output/panel/round3.csv;
+    end
+    Can = load("NextRound.mat","Can").Can;
+    Int = load("Interviewers.mat","Int").Int;
+    upNext = load("upNext.mat", "upNext").upNext;
+    limit = min([currentTime+16, 32]);
+    for i = 1:height(Int)
+        
+        nz = find(Int.Free(i,currentTime+1:limit)==1);
+        Int.validSlots(i) = length(nz);%(nz<limit&nz>currentTime)
+        %disp(Int.validSlots(i));
+    end
+    Int.validSlots(1:16) = ceil(Int.validSlots(1:16)/4);
+    Int.validSlots(17:23) = ceil(Int.validSlots(17:23)/2);
+    %disp(Int.validSlots)
+    mapping = zeros(height(Int), 11);
+    for i = 1:height(Can)
+        if strcmp(Can.Status(i),'Go') ~= 1
+            continue
+        end
+        dict = createDict(Can, Int, currentTime);
+        minTech = 1;
+        lTech = 100;
+        possTech = nonzeros(dict(Can.Track(i),:))';
+            %possTech = possTech(randperm(length(possTech)));
+        loadsTech = 100*ones(1,length(possTech));
+        if Can.Technical(i) == 0 && strcmp(Can.Status(i),'Go')
+
+                for k = 1:length(possTech)
+                    loadsTech(k) = length(nonzeros(mapping(possTech(k),:))');
+                    if length(nonzeros(mapping(possTech(k),:))') < lTech
+                        lTech = length(nonzeros(mapping(possTech(k),:))');
+                        minTech = possTech(k);
+                    end
+                end
+        end
+        [loadsTech,idx] = sort(loadsTech);
+        possTech = possTech(idx);
+
+        if Can.Technical(i) == 1
+            loadsTech = [];
+            possTech = [];
+        end
+        minManager = 17;
+        lManager = 100;
+        possManager = nonzeros(dict(6,:))'  ;
+        loadsManager = 100*ones(1,length(possManager));
+        if Can.Manager(i) == 0 && strcmp(Can.Status(i),'Go') == 1
+
+                for k = 1:length(possManager)
+                    loadsManager(k) = length(nonzeros(mapping(possManager(k),:))');
+                    if length(nonzeros(mapping(possManager(k),:))') < lManager
+                        lManager = length(nonzeros(mapping(possManager(k),:))');
+                        minManager = possManager(k);
+                    end
+                end
+        end
+        [loadsManager,idx] = sort(loadsManager);
+        possManager = possManager(idx);
+        if Can.Manager(i) == 1
+            loadsTech = [];
+            possTech = [];
+        end
+
+        minHR = 24;
+        lHR = 100;
+        possHR = nonzeros(dict(7,:))' ; 
+        loadsHR = 100*ones(1,length(possHR));
+        if Can.HR(i) == 0 && strcmp(Can.Status(i),'Go') == 1
+
+                for k = 1:length(possHR)
+                    loadsHR(k) = length(nonzeros(mapping(possHR(k),:))');
+                    if length(nonzeros(mapping(possHR(k),:))') < lHR
+                        lHR = length(nonzeros(mapping(possHR(k),:))');
+                        minHR = possHR(k);
+                    end
+                end
+        end
+        [loadsHR,idx] = sort(loadsHR);
+        possHR = possHR(idx);
+        if Can.HR(i) == 1
+            loadsHR = [];
+            possHR = [];
+        end
+        % loadsTech
+        % loadsManager
+        % loadsHR
+        [l,idx] = sort([loadsTech loadsManager loadsHR]);
+        type = [ones(1,length(loadsTech)) 2*ones(1,length(loadsManager)) 3*ones(1,length(loadsHR))];
+        keys = [possTech possManager possHR];
+        options = keys(idx);
+        type = type(idx);
+        if isempty(options)
+            continue
+        end
+        i
+        % options = [minTech, minManager, minHR];
+        % [loads,idx] = sort([lTech, lManager, lHR]);
+        % options = options(idx);
+        % spot = 1;
+        % if Int.validSlots(options(spot)) < 1
+        %     spot = 2;
+        %     if Int.validSlots(options(spot)) < 1
+        %         spot = 3;
+        %     end
+        % end
+        for d = 1:length(keys)
+            if Int.validSlots(keys(d)) >= 1
+                spot = d;
+                break
+            end
+        end
+        options
+        spot
+        mapping(options(spot),find(mapping(options(spot),:) == 0, 1)) = Can.ID(i);
+        upNext.Next(upNext.ID == Can.ID(i)) = options(spot);
+        upNext.Iteration(upNext.ID == Can.ID(i)) = iter;
+        %upNext.Scheduled(upNext.ID == Can.ID(i)) = 0;
+        Int.validSlots(options(spot)) = Int.validSlots(options(spot)) - 1;
+        Int.validSlots
+        if type(spot) == 1
+            Can.Technical(i) = 1;
+        end
+        if type(spot) == 2
+            Can.Manager(i) = 1;
+        end
+        if type(spot) == 3
+            Can.HR(i) = 1;
+        end
+        round = sum([Can.Technical(i) Can.Manager(i) Can.HR(i)]);
+        if round == 3
+            Can.Status(i) = {'Done'};
+        end
+            % if find(mapping(poss(j),:) == 0, 1) < 6
+            %     mapping(poss(j),find(mapping(poss(j),:) == 0, 1)) = Can.ID(i);
+            %     flag = 1;
+            %     break
+            % end
+    
+       
+    end
+    % for i = 1:height(Int)
+    %     data = nonzeros(mapping(i,:))'
+    %     l = length(data)
+    %     r = 'A'+string(i)+":"+char('A'+l+1)+string(i)
+    %     writematrix([i data],"matches.csv",'Range',r);
+    % end
+    
+    for i = 1:height(Int)
+        data = nonzeros(mapping(i,:))';
+        for j = 1:length(data)
+            fname = 'test/Scheduling/data/output/panel/'+string("round" + round)+'.csv';
+            writematrix([data(j) i], fname,'WriteMode','append')
+        end
+    end
+    matchFile = 'test/Scheduling/data/output/panel/'+string("round" + round)+'.csv';
+    save('NextRound.mat', 'Can');
+    save('upNext.mat', "upNext")
+    save('Interviewers.mat', "Int")
+    callPython(convertStringsToChars(matchFile));
+end

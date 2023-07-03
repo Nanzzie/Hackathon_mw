@@ -1,0 +1,35 @@
+function adminUpdate(ID, interviewer, slots, automatic)
+    upNext = load("upNext.mat", "upNext").upNext;
+    Int = load("Interviewers.mat","Int").Int;
+    Can = load("NextRound.mat", "Can").Can;
+    old = upNext.Next(upNext.ID==ID);
+    upNext.Next(upNext.ID==ID) = interviewer;
+    iter = upNext.Iteration(upNext.ID==ID);
+    %upNext.Iteration(upNext.ID==ID) = upNext.Iteration(upNext.ID==ID)+1;
+    save("upNext.mat", "upNext");
+    if isfile(convertStringsToChars(string('test/Scheduling/data/output/panel/round'+string(iter)+'.csv')))
+        M = readmatrix(convertStringsToChars(string('test/Scheduling/data/output/panel/round'+string(iter)+'.csv')));
+        M(M==ID,2) = interviewer;
+        writematrix(M,convertStringsToChars(string('test/Scheduling/data/output/panel/round'+string(iter)+'.csv')));
+        if automatic
+            callPython(convertStringsToChars(string("test/Scheduling/data/output/panel/round"+string(iter)+".csv")))
+        else
+            if isempty(slots)
+            else
+                for i = 1:length(ID)
+                    if Int.Track(Int.ID==interviewer) == 6
+                        Int.Free(interviewer,slots(i):slots(i)+1) = ID(i);
+                        Can.nextSlot(Can.ID == ID(i)) = slots(i);
+                    elseif Int.Track(Int.ID==interviewer) == 7
+                        Int.Free(interviewer,slots(i)) = ID(i);
+                        Can.nextSlot(Can.ID == ID(i)) = slots(i);
+                    else
+                        Int.Free(interviewer,slots(i):slots(i)+3) = ID(i);
+                        Can.nextSlot(Can.ID == ID(i)) = slots(i);
+                    end
+                end
+            end
+        end
+    end
+    save("Interviewers.mat", "Int")
+end

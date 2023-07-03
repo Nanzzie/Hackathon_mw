@@ -1,0 +1,27 @@
+function dict = createDict(~, Int, currentTime)
+    dict = zeros(7, 10);
+    index = [1 1 1 1 1 1 1];
+    freeSlots = Int.Free(:,currentTime+1:end);
+    for i = 1:30
+        if strcmp(Int.Status(i),'Go')
+            j = cell2mat(Int.Track(i));
+            for k = j
+                % firstSlot = find(freeSlots(i,:),1);
+                % if firstSlot - currentTime > 16
+                %     continue
+                % end
+                if k <= 5 && Int.validSlots(i)< 2
+                    continue
+                end
+                if k == 6 && Int.validSlots(i) < 5
+                    continue
+                end
+                if k == 7 && Int.validSlots(i) < 12
+                    continue
+                end
+                dict(k, index(k)) = Int.ID(i);
+                index(k) = index(k) + 1;
+            end
+        end
+    end
+end

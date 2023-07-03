@@ -1,0 +1,41 @@
+function [conflict, reschedule, conflictSlots] = declareBusy(ID, slots, currentTime)
+    Int = load("Interviewers.mat", "Int").Int;
+    Can = load("NextRound.mat","Can").Can;
+    freeSlots = Int.Free(Int.ID==ID,:);
+    slots = slots(slots>currentTime);
+    ID = zeros(length(slots));
+    erase = zeros(length(slots));
+    k=1;
+    conflict = 0;
+    for i = slots
+        if freeSlots(i) ~= 0
+            if freeSlots(i) == 1
+                freeSlots(i) = 0;
+            else
+                conflict = 1;
+                ID(k) = freeSlots(i);
+                erase(k) = i;
+                k=k+1;
+                freeSlots(i) = 0;
+            end
+        end
+    end
+    ID = unique(nonzeros(ID))';
+    erase = unique(nonzeros(erase))';
+    conflictSlots = erase;
+    reschedule = ID;
+    for k = ID
+        Can.(Can.ID==k)
+    end
+    Int.Free(Int.ID==ID,:) = freeSlots;
+    limit = min([currentTime+16, 32]);
+    for i = 1:height(Int)
+        
+        nz = find(Int.Free(i,currentTime+1:limit)==1);
+        Int.validSlots(i) = length(nz);%(nz<limit&nz>currentTime)
+        %disp(Int.validSlots(i));
+    end
+    Int.validSlots(1:16) = ceil(Int.validSlots(1:16)/4);
+    Int.validSlots(17:23) = ceil(Int.validSlots(17:23)/2);
+    save("Interviewers.mat", "Int");
+end
